@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0"
+	initialstate="miki">
+	<state id="miki">
+		<initial>
+			<transition target="off" />
+		</initial>
+		<!-- The complex on state -->
+		<state id="powered">
+			<initial>
+				<transition target="standby" />
+			</initial>
+
+			<!-- standby state -->
+			<state id="standby">
+				<!-- The power consumption in this state is around 3 W -->
+
+				<!-- if power > 150W -->
+				<transition target="firingUp" event="newActivePowerValue"
+					cond="_event.data gt 150.0" />
+
+				<!-- if 10W < power< 150W -->
+				<transition target="heating" event="newActivePowerValue"
+					cond="_event.data gt 10 and _event.data lt 150" />
+			</state>
+
+			<state id="on">
+				<!-- firingUp state -->
+				<state id="firingUp">
+					<!-- The power consumption in this state is around 300W -->
+
+					<!-- if 0W < power< 10W -->
+					<transition target="standby" event="newActivePowerValue"
+						cond="_event.data gt 0 and _event.data lt 10" />
+
+					<!-- if 10W < power< 150W -->
+					<transition target="heating" event="newActivePowerValue"
+						cond="_event.data gt 10 and _event.data lt 150" />
+				</state>
+
+				<!-- heating state -->
+				<state id="heating">
+					<initial>
+						<transition target="fan" />
+					</initial>
+					<state id="fan">
+						<onentry>
+							<send id="tCool" event="'timerCooling'" delay="'60s'"/>
+						</onentry>
+						<onexit>
+							<cancel sendid="tCool" />
+						</onexit>
+						<!-- if 50W < power < 150W -->
+						<transition target="fanfuel" event="newActivePowerValue"
+							cond="_event.data gt 50 and _event.data lt 150" />
+						<!-- if in fan state for more than 1 minute -->
+						<transition target="cooling" event="timerCooling" />
+					</state>
+					<state id="fanfuel">
+						<!-- if 10W < power < 150W -->
+						<transition target="fan" event="newActivePowerValue"
+							cond="_event.data gt 10 and _event.data lt 50" />
+					</state>
+					<!-- if in fan state for more than 1 minute -->
+					<transition target="cooling" event="timerCooling" />
+				</state>
+
+				<!-- cooling state -->
+				<state id="cooling">
+					<!-- if 0W < power < 10W -->
+					<transition target="standby" event="newActivePowerValue"
+						cond="_event.data gt 0 and _event.data lt 10" />
+
+					<!-- if power > 150W -->
+					<transition target="firingUp" event="newActivePowerValue"
+						cond="_event.data gt 150.0" />
+				</state>
+			</state>
+			<!-- if power <= 0W -->
+			<transition target="off" event="newActivePowerValue" cond="_event.data le 0.0" />
+		</state>
+		<state id="off">
+			<!-- if power > 0W -->
+			<transition target="powered" event="newActivePowerValue"
+				cond="_event.data gt 0.0" />
+		</state>
+	</state>
+</scxml>

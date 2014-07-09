@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0"
+	initialstate="samsung_microwave">
+	<state id="samsung_microwave">
+		<initial>
+			<transition target="off" />
+		</initial>
+
+		<!-- off -->
+		<state id="off">
+			<!-- if power > 0W -->
+			<transition target="powered" event="newActivePowerValue"
+				cond="_event.data gt 0.0" />
+		</state>
+
+		<state id="powered">
+			<initial>
+				<transition target="standby" />
+			</initial>
+
+			<!-- standby state -->
+			<state id="standby">
+				<!-- The power consumption in this state is around <= 3 W -->
+
+				<!-- if power > 50W -->
+				<transition target="on" event="newActivePowerValue" cond="_event.data gt 50.0" />
+
+				<!-- if power <= 0W -->
+				<transition target="off" event="newActivePowerValue"
+					cond="_event.data le 0.0" />
+
+				<!-- if 50W > power > 3W -->
+				<transition target="door_open" event="newActivePowerValue"
+					cond="_event.data gt 3.0 and _event.data lt 50.0" />
+			</state>
+
+			<!-- on state (complex) -->
+			<state id="on">
+				<initial>
+					<transition target="running" />
+				</initial>
+				<!-- the running state (complex) -->
+				<state id="running">
+					<initial>
+						<transition target="wave_on" />
+					</initial>
+
+					<!-- the wave on status, the microwave emits radiofrequency to cook 
+						food , typical power is > 700W -->
+					<state id="wave_on">
+						<!-- if power < 700W -->
+						<transition target="wave_off" event="newActivePowerValue"
+							cond="_event.data le 700" />
+					</state>
+
+					<!-- the wave off status, the microwave is running but not emitting 
+						radiofrequency -->
+					<state id="wave_off">
+						<onentry>
+							<send id="standbyTimeout" event="'standByTime'" delay="'30s'" />
+						</onentry>
+						<onexit>
+							<cancel sendid="standbyTimeout" />
+						</onexit>
+						<!-- if power > 700W -->
+						<transition target="wave_on" event="newActivePowerValue"
+							cond="_event.data gt 700" />
+					</state>
+
+					<!-- if 50W > power > 3W -->
+					<transition target="door_open" event="newActivePowerValue"
+						cond="_event.data gt 3.0 and _event.data lt 50.0" />
+
+					<!-- if power < 3W for more than 30s i.e., the microwave has ended cooking 
+						and nobody opened the door -->
+					<transition target="standby" event="standByTime" />
+				</state>
+				<state id="door_open">
+					<!-- if power > 700W -->
+					<transition target="wave_on" event="newActivePowerValue"
+						cond="_event.data gt 700.0" />
+					<!-- if power < 3W -->
+					<transition target="standby" event="newActivePowerValue"
+						cond="_event.data le 3.0" />
+				</state>
+			</state>
+			
+			<transition target="powered" event="newActivePowerValue"
+				cond="_event.data lt 0.0" />
+		</state>
+	</state>
+</scxml>

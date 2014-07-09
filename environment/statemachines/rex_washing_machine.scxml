@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0"
+	initialstate="rex_washing_machine">
+	<state id="rex_washing_machine">
+		<initial>
+			<transition target="off" />
+		</initial>
+
+		<!-- off -->
+		<state id="off">
+			<!-- if power > 0W -->
+			<transition target="powered" event="newActivePowerValue"
+				cond="_event.data gt 0.0" />
+		</state>
+
+		<!-- powered complex state -->
+		<state id="powered">
+			<initial>
+				<transition target="standby" />
+			</initial>
+
+			<!-- standby, typical power consumption between 0W and 3W -->
+			<state id="standby">
+				<!-- if power > 50W -->
+				<transition target="on" event="newActivePowerValue" cond="_event.data gt 3.0" />
+			</state>
+
+			<!-- on comple state -->
+			<state id="on">
+				<initial>
+					<transition target="washing" />
+				</initial>
+				
+				<!-- washing cycle, typical power consumption between 3W and 300W -->
+				<state id="washing">
+					<transition target="heating" event="newActivePowerValue" cond="_event.data gt 500.0" />
+				</state>
+				
+				<!-- heating cycle, typical power consumption is over 1000W -->
+				<state id="heating">
+					<transition target="washing" event="newActivePowerValue" cond="_event.data le 500.0 and _event.data gt 3.0" />
+				</state>
+				
+				<transition target="standby" event="newActivePowerValue" cond="_event.data le 3.0" />
+			</state>
+			
+			<transition target="off" event="newActivePowerValue" cond="_event.data le 0.0" />
+		</state>
+	</state>
+</scxml>
